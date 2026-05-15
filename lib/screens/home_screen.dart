@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/destination_card.dart';
 import 'add_screen.dart';
+import 'detail_screen.dart';
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -10,18 +12,21 @@ class HomeScreen extends StatelessWidget {
       'locationName': 'Harar',
       'distance': '526 Km',
       'thumbnailUrl': 'https://picsum.photos/seed/jegol/300/200',
+      'memory': 'An ancient walled city, one of the most fascinating places in Ethiopia.',
     },
     {
       'placeName': 'Tana Lake',
       'locationName': 'Bahir Dar',
       'distance': '563 Km',
       'thumbnailUrl': 'https://picsum.photos/seed/tana/300/200',
+      'memory': 'The largest lake in Ethiopia, source of the Blue Nile. Truly breathtaking.',
     },
     {
       'placeName': 'Dalol',
       'locationName': 'Afar',
       'distance': '780 Km',
       'thumbnailUrl': 'https://picsum.photos/seed/dalol/300/200',
+      'memory': 'The hottest place on Earth. An alien-like landscape of colors and minerals.',
     },
   ];
 
@@ -84,6 +89,12 @@ class HomeScreen extends StatelessWidget {
                   distance: memo['distance']!,
                   thumbnailUrl: memo['thumbnailUrl']!,
                   onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DetailsScreen(memo: memo),
+                      ),
+                    );
                   },
                 );
               },
