@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/destination_card.dart';
-
+import 'add_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -94,6 +94,10 @@ class HomeScreen extends StatelessWidget {
 
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddScreen()),
+    );
         },
         backgroundColor: const Color(0xFF2E7D32),
         icon: const Icon(Icons.add, color: Colors.white),
