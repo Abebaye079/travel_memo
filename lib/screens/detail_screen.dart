@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_text_field.dart';
+import 'package:provider/provider.dart';
+import '../providers/memo_provider.dart';
+import '../models/memo.dart';
 
 class DetailsScreen extends StatefulWidget {
-  final Map<String, String> memo;
+  final Memo memo;
 
   const DetailsScreen({
     super.key,
@@ -28,15 +31,15 @@ class _DetailsScreenState extends State<DetailsScreen> {
   void initState() {
     super.initState();
     _placeNameController =
-        TextEditingController(text: widget.memo['placeName']);
+        TextEditingController(text: widget.memo.placeName);
     _locationNameController =
-        TextEditingController(text: widget.memo['locationName']);
+      TextEditingController(text: widget.memo.locationName);
     _distanceController =
-        TextEditingController(text: widget.memo['distance']);
+      TextEditingController(text: widget.memo.distance);
     _imageUrlController =
-        TextEditingController(text: widget.memo['thumbnailUrl']);
+      TextEditingController(text: widget.memo.imageUrl);
     _memoryController =
-        TextEditingController(text: widget.memo['memory']);
+      TextEditingController(text: widget.memo.memory);
   }
 
   @override
@@ -55,25 +58,42 @@ class _DetailsScreenState extends State<DetailsScreen> {
     });
   }
 
-  void _saveEdit() {
+  void _saveEdit() async {
     if (_formKey.currentState!.validate()) {
-      // Will connect to API later
-      setState(() {
-        _isEditing = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Memo updated successfully!'),
-          backgroundColor: Color(0xFF2E7D32),
-        ),
+      final updatedMemo = Memo(
+        id: widget.memo.id,
+        placeName: _placeNameController.text.trim(),
+        locationName: _locationNameController.text.trim(),
+        distance: _distanceController.text.trim(),
+        imageUrl: _imageUrlController.text.trim(),
+        memory: _memoryController.text.trim(),
       );
+
+      final success =
+          await context.read<MemoProvider>().updateMemo(updatedMemo);
+
+      if (success && mounted) {
+        setState(() => _isEditing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Memo updated successfully!'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update memo. Try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
-
   void _confirmDelete() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -89,7 +109,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
           style: TextStyle(fontSize: 14),
         ),
         actions: [
-          // No Button
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text(
@@ -100,17 +119,15 @@ class _DetailsScreenState extends State<DetailsScreen> {
               ),
             ),
           ),
-          // Yes Button
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // close dialog
-              Navigator.pop(context); // go back to home
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Memo deleted successfully!'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+            onPressed: () async {
+              Navigator.pop(dialogContext); // close dialog
+              final success = await context
+                  .read<MemoProvider>()
+                  .deleteMemo(widget.memo.id);
+              if (success && mounted) {
+                Navigator.pop(context, 'deleted');
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -127,7 +144,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -152,10 +168,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image Section
             Stack(
               children: [
-                // Image
                 _imageUrlController.text.isNotEmpty
                     ? Image.network(
                         _imageUrlController.text,
@@ -293,7 +307,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
                       Row(
                         children: [
-                          // Edit Button
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: _toggleEdit,

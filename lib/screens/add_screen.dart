@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_text_field.dart';
+import 'package:provider/provider.dart';
+import '../providers/memo_provider.dart';
+import '../models/memo.dart';
 
 class AddScreen extends StatefulWidget {
   const AddScreen({super.key});
@@ -10,7 +13,6 @@ class AddScreen extends StatefulWidget {
 
 class _AddScreenState extends State<AddScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final _placeNameController = TextEditingController();
   final _locationNameController = TextEditingController();
   final _distanceController = TextEditingController();
@@ -35,9 +37,21 @@ class _AddScreenState extends State<AddScreen> {
     });
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      // Will connect to API later
+  void _submitForm() async {
+  if (_formKey.currentState!.validate()) {
+    final memo = Memo(
+      id: 0,
+      placeName: _placeNameController.text.trim(),
+      locationName: _locationNameController.text.trim(),
+      distance: _distanceController.text.trim(),
+      imageUrl: _imageUrlController.text.trim(),
+      memory: _memoryController.text.trim(),
+    );
+
+    final success =
+        await context.read<MemoProvider>().createMemo(memo);
+
+    if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Memo added successfully!'),
@@ -45,8 +59,16 @@ class _AddScreenState extends State<AddScreen> {
         ),
       );
       Navigator.pop(context);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to add memo. Try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

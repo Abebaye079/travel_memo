@@ -1,42 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/memo_provider.dart';
 import '../widgets/destination_card.dart';
 import 'add_screen.dart';
 import 'detail_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  final List<Map<String, String>> dummyMemos = const [
-    {
-      'placeName': 'Jegol Wall',
-      'locationName': 'Harar',
-      'distance': '526 Km',
-      'thumbnailUrl': 'https://picsum.photos/seed/jegol/300/200',
-      'memory': 'An ancient walled city, one of the most fascinating places in Ethiopia.',
-    },
-    {
-      'placeName': 'Tana Lake',
-      'locationName': 'Bahir Dar',
-      'distance': '563 Km',
-      'thumbnailUrl': 'https://picsum.photos/seed/tana/300/200',
-      'memory': 'The largest lake in Ethiopia, source of the Blue Nile. Truly breathtaking.',
-    },
-    {
-      'placeName': 'Dalol',
-      'locationName': 'Afar',
-      'distance': '780 Km',
-      'thumbnailUrl': 'https://picsum.photos/seed/dalol/300/200',
-      'memory': 'The hottest place on Earth. An alien-like landscape of colors and minerals.',
-    },
-  ];
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      context.read<MemoProvider>().clearError();
+      context.read<MemoProvider>().fetchMemos();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<MemoProvider>();
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: const Color(0xFF2E7D32),
-        elevation: 1,
+        elevation: 0,
         title: const Text(
           'TRAVEL MEMO',
           style: TextStyle(
@@ -48,7 +42,6 @@ class HomeScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: double.infinity,
@@ -63,10 +56,11 @@ class HomeScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.place, color: Colors.white70, size: 18),
+                const Icon(Icons.place,
+                    color: Colors.white70, size: 18),
                 const SizedBox(width: 8),
                 Text(
-                  'Places You Traveled  •  ${dummyMemos.length} places',
+                  'Places You Traveled  •  ${provider.memos.length} places',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -78,37 +72,100 @@ class HomeScreen extends StatelessWidget {
           ),
 
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: dummyMemos.length,
-              itemBuilder: (context, index) {
-                final memo = dummyMemos[index];
-                return DestinationCard(
-                  placeName: memo['placeName']!,
-                  locationName: memo['locationName']!,
-                  distance: memo['distance']!,
-                  thumbnailUrl: memo['thumbnailUrl']!,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailsScreen(memo: memo),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+            child: provider.isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF2E7D32),
+                    ),
+                  )
+                : provider.error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.wifi_off,
+                                size: 60, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text(
+                              provider.error!,
+                              style: TextStyle(color: Colors.grey[600]),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () =>
+                                  context.read<MemoProvider>().fetchMemos(),
+                              icon: const Icon(Icons.refresh,
+                                  color: Colors.white),
+                              label: const Text(
+                                'Retry',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2E7D32),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : provider.memos.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.travel_explore,
+                                    size: 60, color: Colors.grey[400]),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No memories yet.\nTap + to add your first!',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: provider.memos.length,
+                            itemBuilder: (context, index) {
+                              final memo = provider.memos[index];
+                              return DestinationCard(
+                                placeName: memo.placeName,
+                                locationName: memo.locationName,
+                                distance: memo.distance,
+                                thumbnailUrl: memo.imageUrl,
+                                onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => DetailsScreen(memo: memo),
+                                    ),
+                                  );
+                                  if (result == 'deleted' && mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Memo deleted successfully!'),
+                                        backgroundColor: Colors.red,
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                },
+                              );
+                            },
+                          ),
           ),
         ],
       ),
 
+      // FAB
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          await Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const AddScreen()),
-    );
+            MaterialPageRoute(
+                builder: (_) => const AddScreen()),
+          );
         },
         backgroundColor: const Color(0xFF2E7D32),
         icon: const Icon(Icons.add, color: Colors.white),
