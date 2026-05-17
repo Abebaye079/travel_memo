@@ -7,6 +7,7 @@ class ApiService {
       'https://jsonplaceholder.typicode.com';
 
   Future<List<Memo>> getMemos() async {
+    await Future.delayed(const Duration(seconds: 3));
     return [];
   }
 
@@ -25,14 +26,15 @@ class ApiService {
   }
 
   Future<Memo> updateMemo(Memo memo) async {
+    final validId = memo.id > 100 ? 1 : memo.id;
     final response = await http.put(
-      Uri.parse('$_baseUrl/posts/${memo.id}'),
+      Uri.parse('$_baseUrl/posts/$validId'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(memo.toJson()),
     );
 
     if (response.statusCode == 200) {
-      return Memo.fromJson(jsonDecode(response.body));
+      return memo;
     } else {
       throw Exception('Failed to update memo');
     }
