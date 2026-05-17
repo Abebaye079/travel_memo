@@ -23,6 +23,12 @@ class MemoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  // ─── READ ────────────────────────────────────────────
   Future<void> fetchMemos() async {
     _setLoading(true);
     _setError(null);
@@ -35,11 +41,21 @@ class MemoProvider extends ChangeNotifier {
     }
   }
 
+  // ─── CREATE ──────────────────────────────────────────
   Future<bool> createMemo(Memo memo) async {
     _setLoading(true);
     _setError(null);
     try {
-      final newMemo = await _apiService.createMemo(memo);
+      await _apiService.createMemo(memo);
+      final localId = DateTime.now().millisecondsSinceEpoch;
+      final newMemo = Memo(
+        id: localId,
+        placeName: memo.placeName,
+        locationName: memo.locationName,
+        distance: memo.distance,
+        imageUrl: memo.imageUrl,
+        memory: memo.memory,
+      );
       _memos.insert(0, newMemo);
       notifyListeners();
       return true;
@@ -51,14 +67,15 @@ class MemoProvider extends ChangeNotifier {
     }
   }
 
+  // ─── UPDATE ──────────────────────────────────────────
   Future<bool> updateMemo(Memo memo) async {
     _setLoading(true);
     _setError(null);
     try {
-      final updatedMemo = await _apiService.updateMemo(memo);
+      await _apiService.updateMemo(memo);
       final index = _memos.indexWhere((m) => m.id == memo.id);
       if (index != -1) {
-        _memos[index] = updatedMemo;
+        _memos[index] = memo;
         notifyListeners();
       }
       return true;
@@ -70,6 +87,7 @@ class MemoProvider extends ChangeNotifier {
     }
   }
 
+  // ─── DELETE ──────────────────────────────────────────
   Future<bool> deleteMemo(int id) async {
     _setLoading(true);
     _setError(null);
